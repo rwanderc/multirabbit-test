@@ -11,12 +11,11 @@ import org.springframework.amqp.rabbit.connection.SimpleResourceHolder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-@EnableRabbit
+@EnableRabbit(multi = true)
 @SpringBootApplication
 public class MultiRabbitApplicationTest {
 
@@ -33,98 +32,101 @@ public class MultiRabbitApplicationTest {
         private static final String ROUTING_KEY = "sampleRoutingKey";
 
         private final RabbitTemplate rabbitTemplate;
-//        private final ConnectionFactoryContextWrapper contextWrapper;
+        private final ConnectionFactoryContextWrapper contextWrapper;
 
-        private static final int AMOUNT_OF_LISTENERS = 3;
-        private volatile int defaultSemaphore = 0;
-        private volatile int contextSemaphore = 0;
-
-        SomeController(final RabbitTemplate rabbitTemplate
-//                ,                       final ConnectionFactoryContextWrapper contextWrapper
-        ) {
+        SomeController(final RabbitTemplate rabbitTemplate,
+                       final ConnectionFactoryContextWrapper contextWrapper) {
             this.rabbitTemplate = rabbitTemplate;
-//            this.contextWrapper = contextWrapper;
+            this.contextWrapper = contextWrapper;
         }
 
-//        @Scheduled(fixedRate = 1_000L)
-//        void sendMessageTheDefaultWay() {
-//            this.defaultSemaphore = this.defaultSemaphore++ % AMOUNT_OF_LISTENERS;
-//            final int id = defaultSemaphore;
-//
-//            if (id != 0) {
-//                SimpleResourceHolder.bind(rabbitTemplate.getConnectionFactory(), CONNECTION_PREFIX + id);
-//            }
-//
-//            final String exchange = EXCHANGE_NAME + id;
-//            final String routingKey = ROUTING_KEY + id;
-//            final String message = "message sent by the default method";
-//
-//            // Regular use of RabbitTemplate
-//            rabbitTemplate.convertAndSend(exchange, routingKey, message);
-//
-//            if (id != 0) {
-//                SimpleResourceHolder.unbind(rabbitTemplate.getConnectionFactory());
-//            }
-//        }
-//
-//        @Scheduled(fixedRate = 1_000L)
-//        void sendMessageUsingContextWrapper() {
-//            this.contextSemaphore = this.contextSemaphore++ % AMOUNT_OF_LISTENERS;
-//            final int id = contextSemaphore;
-//
-//            final String idWithPrefix = (id != 0) ? CONNECTION_PREFIX + id : null;
-//
-//            contextWrapper.run(idWithPrefix, () -> {
-//                final String exchange = EXCHANGE_NAME + id;
-//                final String routingKey = ROUTING_KEY + id;
-//                final String message = "message sent with context wrapper";
-//
-//                // Regular use of RabbitTemplate
-//                rabbitTemplate.convertAndSend(exchange, routingKey, message);
-//            });
-//        }
+        @Scheduled(fixedDelay = 5_000L)
+        void sendMessageTheDefaultWay() {
+            sendDefaultWay(0);
+        }
+
+        @Scheduled(fixedDelay = 5_000L)
+        void sendMessageToConnection1TheDefaultWay() {
+            sendDefaultWay(1);
+        }
+
+        @Scheduled(fixedDelay = 5_000L)
+        void sendMessageToConnection2TheDefaultWay() {
+            sendDefaultWay(2);
+        }
+
+        private void sendDefaultWay(int id) {
+            if (id != 0) {
+                SimpleResourceHolder.bind(rabbitTemplate.getConnectionFactory(), CONNECTION_PREFIX + id);
+            }
+
+            final String exchange = EXCHANGE_NAME + id;
+            final String routingKey = ROUTING_KEY + id;
+            final String message = "message sent by default way: " + id;
+
+            // Regular use of RabbitTemplate
+            rabbitTemplate.convertAndSend(exchange, routingKey, message);
+
+            if (id != 0) {
+                SimpleResourceHolder.unbind(rabbitTemplate.getConnectionFactory());
+            }
+        }
+
+        @Scheduled(fixedDelay = 5_000L)
+        void sendMessageWithContextWrapper() {
+            sendWithContextWrapper(0);
+        }
+
+        @Scheduled(fixedDelay = 5_000L)
+        void sendMessageToConnection1WithContextWrapper() {
+            sendWithContextWrapper(1);
+        }
+
+        @Scheduled(fixedDelay = 5_000L)
+        void sendMessageToConnection2WithContextWrapper() {
+            sendWithContextWrapper(2);
+        }
+
+        private void sendWithContextWrapper(int id) {
+            contextWrapper.run(CONNECTION_PREFIX + id, () -> {
+                final String exchange = EXCHANGE_NAME + id;
+                final String routingKey = ROUTING_KEY + id;
+                final String message = "message sent by context wrapper: " + id;
+
+                // Regular use of RabbitTemplate
+                rabbitTemplate.convertAndSend(exchange, routingKey, message);
+            });
+        }
     }
 
     @Slf4j
     @Component
     public static class SomeListeners {
 
-        private static final String SAMPLE_EXCHANGE = "sampleExchange";
-        private static final String SAMPLE_ROUTING_KEY = "sampleRoutingKey";
-        private static final String SAMPLE_QUEUE = "sampleQueue";
-
-        private static final String SAMPLE_EXCHANGE_A = SAMPLE_EXCHANGE + "A";
-        private static final String SAMPLE_ROUTING_KEY_A = SAMPLE_ROUTING_KEY + "A";
-        private static final String SAMPLE_QUEUE_A = SAMPLE_QUEUE + "A";
-
-        private static final String SAMPLE_EXCHANGE_B = SAMPLE_EXCHANGE + "B";
-        private static final String SAMPLE_ROUTING_KEY_B = SAMPLE_ROUTING_KEY + "B";
-        private static final String SAMPLE_QUEUE_B = SAMPLE_QUEUE + "B";
-
         @RabbitListener(bindings = @QueueBinding(
-                value = @Queue(SAMPLE_QUEUE),
-                exchange = @Exchange(SAMPLE_EXCHANGE),
-                key = SAMPLE_ROUTING_KEY))
+                value = @Queue("sampleQueue0"),
+                exchange = @Exchange("sampleExchange0"),
+                key = "sampleRoutingKey0"))
         void listen(final String message) {
             log.info("Default Listener: {}", message);
         }
 
-        @RabbitListener(containerFactory = "connectionNameA",
+        @RabbitListener(containerFactory = "connectionName1",
                 bindings = @QueueBinding(
-                value = @Queue(value = SAMPLE_QUEUE_A),
-                exchange = @Exchange(value =SAMPLE_EXCHANGE_A),
-                key = SAMPLE_ROUTING_KEY_A))
+                        value = @Queue(value = "sampleQueue1"),
+                        exchange = @Exchange(value = "sampleExchange1"),
+                        key = "sampleRoutingKey1"))
         void listenConnectionNameA(final String message) {
             log.info("Listener 'connectionNameA': {}", message);
         }
 
-//        @RabbitListener(containerFactory = "connectionNameB", bindings = @QueueBinding(
-//                value = @Queue(SAMPLE_QUEUE_B),
-//                exchange = @Exchange(SAMPLE_EXCHANGE_B),
-//                key = SAMPLE_ROUTING_KEY_B))
-//        public void listenConnectionNameB(final String message) {
-//            log.info("Listener 'connectionNameB': {}", message);
-//        }
+        @RabbitListener(containerFactory = "connectionName2", bindings = @QueueBinding(
+                value = @Queue("sampleQueue2"),
+                exchange = @Exchange("sampleExchange2"),
+                key = "sampleRoutingKey2"))
+        public void listenConnectionNameB(final String message) {
+            log.info("Listener 'connectionNameB': {}", message);
+        }
     }
 
 }

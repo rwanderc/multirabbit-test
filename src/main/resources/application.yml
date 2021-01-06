@@ -4,16 +4,14 @@ spring:
         port: 5672
     multirabbitmq:
         connections:
-            connectionNameA:
+            connectionName1:
                 host: localhost
                 port: 5673
-            connectionNameB:
+            connectionName2:
                 host: localhost
                 port: 5674
 
     main:
         allow-bean-definition-overriding: true
-#    main:
-#        allow-bean-definition-overriding: true
 
 
