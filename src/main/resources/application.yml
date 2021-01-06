@@ -1,0 +1,19 @@
+spring:
+    rabbitmq:
+        host: localhost
+        port: 5672
+    multirabbitmq:
+        connections:
+            connectionNameA:
+                host: localhost
+                port: 5673
+            connectionNameB:
+                host: localhost
+                port: 5674
+
+    main:
+        allow-bean-definition-overriding: true
+#    main:
+#        allow-bean-definition-overriding: true
+
+
