@@ -1,4 +1,4 @@
-package com.wandercosta.multirabbit;
+package com.wandercosta.multirabbit.failing;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.amqp.MultiRabbitAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * {@link MultiRabbitAutoConfiguration} is normally triggered before the processing of the Listeners by the
@@ -33,7 +32,7 @@ public class BeanInitializationBugIntegrationTest {
     void shouldStartContextWithoutRabbitTemplate() {
     }
 
-    @EnableRabbit(multi = true)
+    @EnableRabbit
     @SpringBootApplication
     public static class Application {
 
@@ -42,12 +41,10 @@ public class BeanInitializationBugIntegrationTest {
         }
 
         public static final String EXCHANGE_0 = "sampleExchange0";
-        public static final String QUEUE_0 = "sampleQueue0";
         public static final String RK_0 = "sampleRoutingKey0";
 
         public static final String BROKER_NAME_1 = "connectionName1";
         public static final String EXCHANGE_1 = "sampleExchange1";
-        public static final String QUEUE_1 = "sampleQueue1";
         public static final String RK_1 = "sampleRoutingKey1";
 
         @Autowired
@@ -55,14 +52,14 @@ public class BeanInitializationBugIntegrationTest {
 
         @RabbitListener(bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_0),
-                value = @Queue(QUEUE_0),
+                value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
                 key = RK_0))
         void listen(final String message) {
         }
 
         @RabbitListener(containerFactory = BROKER_NAME_1, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_1),
-                value = @Queue(QUEUE_1),
+                value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
                 key = RK_1))
         void listenConnectionName1(final String message) {
         }

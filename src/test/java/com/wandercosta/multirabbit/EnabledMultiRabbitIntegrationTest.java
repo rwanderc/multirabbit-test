@@ -27,18 +27,17 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("three-brokers")
 public class EnabledMultiRabbitIntegrationTest {
 
+    private static final Memory MEMORY = new Memory();
+
     @Autowired
     private ConnectionFactoryContextWrapper contextWrapper;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    @Autowired
-    private Memory memory;
-
     @BeforeEach
     void beforeEach() {
-        memory.clear();
+        MEMORY.clear();
     }
 
     @Test
@@ -47,7 +46,7 @@ public class EnabledMultiRabbitIntegrationTest {
         final String message = RandomString.make();
         contextWrapper.run(() -> rabbitTemplate.convertAndSend(Application.EXCHANGE_0, Application.RK_0, message));
         await().timeout(Duration.FIVE_SECONDS)
-                .untilAsserted(() -> assertEquals(message, memory.get("default")));
+                .untilAsserted(() -> assertEquals(message, MEMORY.get("default")));
     }
 
     @Test
@@ -57,7 +56,7 @@ public class EnabledMultiRabbitIntegrationTest {
         contextWrapper.run("connectionName1",
                 () -> rabbitTemplate.convertAndSend(Application.EXCHANGE_1, Application.RK_1, message));
         await().timeout(Duration.FIVE_SECONDS)
-                .untilAsserted(() -> assertEquals(message, memory.get(Application.BROKER_NAME_1)));
+                .untilAsserted(() -> assertEquals(message, MEMORY.get(Application.BROKER_NAME_1)));
     }
 
     @Test
@@ -67,11 +66,11 @@ public class EnabledMultiRabbitIntegrationTest {
         contextWrapper.run("connectionName2",
                 () -> rabbitTemplate.convertAndSend(Application.EXCHANGE_2, Application.RK_2, message));
         await().timeout(Duration.FIVE_SECONDS)
-                .untilAsserted(() -> assertEquals(message, memory.get(Application.BROKER_NAME_2)));
+                .untilAsserted(() -> assertEquals(message, MEMORY.get(Application.BROKER_NAME_2)));
 
     }
 
-    @EnableRabbit(multi = true)
+    @EnableRabbit
     @SpringBootApplication
     public static class Application {
 
@@ -80,47 +79,41 @@ public class EnabledMultiRabbitIntegrationTest {
         }
 
         public static final String EXCHANGE_0 = "sampleExchange0";
-        public static final String QUEUE_0 = "sampleQueue0";
         public static final String RK_0 = "sampleRoutingKey0";
 
         public static final String BROKER_NAME_1 = "connectionName1";
         public static final String EXCHANGE_1 = "sampleExchange1";
-        public static final String QUEUE_1 = "sampleQueue1";
         public static final String RK_1 = "sampleRoutingKey1";
 
         public static final String BROKER_NAME_2 = "connectionName2";
         public static final String EXCHANGE_2 = "sampleExchange2";
-        public static final String QUEUE_2 = "sampleQueue2";
         public static final String RK_2 = "sampleRoutingKey2";
-
-        @Autowired
-        private Memory memory;
 
         @Autowired
         private RabbitTemplate rabbitTemplate; // TODO This must not be necessary
 
         @RabbitListener(bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_0),
-                value = @Queue(QUEUE_0),
+                value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
                 key = RK_0))
         void listen(final String message) {
-            memory.put("default", message);
+            MEMORY.put("default", message);
         }
 
         @RabbitListener(containerFactory = BROKER_NAME_1, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_1),
-                value = @Queue(QUEUE_1),
+                value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
                 key = RK_1))
         void listenConnectionName1(final String message) {
-            memory.put(BROKER_NAME_1, message);
+            MEMORY.put(BROKER_NAME_1, message);
         }
 
         @RabbitListener(containerFactory = BROKER_NAME_2, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_2),
-                value = @Queue(QUEUE_2),
+                value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
                 key = RK_2))
         void listenConnectionName2(final String message) {
-            memory.put(BROKER_NAME_2, message);
+            MEMORY.put(BROKER_NAME_2, message);
         }
     }
 }
