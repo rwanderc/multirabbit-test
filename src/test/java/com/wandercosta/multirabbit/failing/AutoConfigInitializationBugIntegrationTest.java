@@ -14,6 +14,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.amqp.MultiRabbitAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -23,12 +24,12 @@ import org.springframework.test.context.ActiveProfiles;
  * This test makes sure to test MultiRabbit without the injection of a RabbitTemplate as a workaround for the
  * initialization.
  */
-@SpringBootTest(classes = BeanInitializationBugIntegrationTest.Application.class)
+@SpringBootTest(classes = AutoConfigInitializationBugIntegrationTest.Application.class)
 @ActiveProfiles("three-brokers")
-public class BeanInitializationBugIntegrationTest {
+public class AutoConfigInitializationBugIntegrationTest {
 
     @Test
-    @DisplayName("Should start MultiRabbit AutoConfig without reference to RabbitTemplate")
+    @DisplayName("Should start MultiRabbit AutoConfig without reference to ConnectionFactory")
     void shouldStartContextWithoutRabbitTemplate() {
     }
 
@@ -37,7 +38,7 @@ public class BeanInitializationBugIntegrationTest {
     public static class Application {
 
         public static void main(final String... args) {
-            SpringApplication.run(BeanInitializationBugIntegrationTest.class, args);
+            SpringApplication.run(AutoConfigInitializationBugIntegrationTest.class, args);
         }
 
         public static final String EXCHANGE_0 = "sampleExchange0";
@@ -47,17 +48,16 @@ public class BeanInitializationBugIntegrationTest {
         public static final String EXCHANGE_1 = "sampleExchange1";
         public static final String RK_1 = "sampleRoutingKey1";
 
-        @Autowired
-        private ConnectionFactory connectionFactory; // TODO This must not be necessary
-
-        @RabbitListener(bindings = @QueueBinding(
+        @RabbitListener(admin = "amqpAdmin", bindings = @QueueBinding(
+//        @RabbitListener(bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_0),
                 value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
                 key = RK_0))
         void listen(final String message) {
         }
 
-        @RabbitListener(containerFactory = BROKER_NAME_1, bindings = @QueueBinding(
+        @RabbitListener(containerFactory = BROKER_NAME_1, admin = BROKER_NAME_1 + "-admin", bindings = @QueueBinding(
+//        @RabbitListener(containerFactory = BROKER_NAME_1, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_1),
                 value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
                 key = RK_1))
