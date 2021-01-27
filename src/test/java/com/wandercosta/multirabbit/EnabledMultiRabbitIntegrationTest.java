@@ -67,7 +67,6 @@ public class EnabledMultiRabbitIntegrationTest {
                 () -> rabbitTemplate.convertAndSend(Application.EXCHANGE_2, Application.RK_2, message));
         await().timeout(Duration.FIVE_SECONDS)
                 .untilAsserted(() -> assertEquals(message, MEMORY.get(Application.BROKER_NAME_2)));
-
     }
 
     @EnableRabbit
