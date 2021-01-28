@@ -1,4 +1,10 @@
-package com.wandercosta.multirabbit.failing;
+package com.wandercosta.multirabbit;
+
+import static com.wandercosta.multirabbit.TestConstants.BROKER_NAME_1;
+import static com.wandercosta.multirabbit.TestConstants.EXCHANGE_0;
+import static com.wandercosta.multirabbit.TestConstants.EXCHANGE_1;
+import static com.wandercosta.multirabbit.TestConstants.ROUTING_KEY_0;
+import static com.wandercosta.multirabbit.TestConstants.ROUTING_KEY_1;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,12 +15,9 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.amqp.MultiRabbitAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -37,31 +40,18 @@ public class AutoConfigInitializationBugIntegrationTest {
     @SpringBootApplication
     public static class Application {
 
-        public static void main(final String... args) {
-            SpringApplication.run(AutoConfigInitializationBugIntegrationTest.class, args);
-        }
-
-        public static final String EXCHANGE_0 = "sampleExchange0";
-        public static final String RK_0 = "sampleRoutingKey0";
-
-        public static final String BROKER_NAME_1 = "connectionName1";
-        public static final String EXCHANGE_1 = "sampleExchange1";
-        public static final String RK_1 = "sampleRoutingKey1";
-
-        @RabbitListener(admin = "amqpAdmin", bindings = @QueueBinding(
-//        @RabbitListener(bindings = @QueueBinding(
+        @RabbitListener(bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_0),
                 value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
-                key = RK_0))
-        void listen(final String message) {
+                key = ROUTING_KEY_0))
+        void listenBroken0(final String message) {
         }
 
-        @RabbitListener(containerFactory = BROKER_NAME_1, admin = BROKER_NAME_1 + "-admin", bindings = @QueueBinding(
-//        @RabbitListener(containerFactory = BROKER_NAME_1, bindings = @QueueBinding(
+        @RabbitListener(containerFactory = BROKER_NAME_1, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_1),
                 value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
-                key = RK_1))
-        void listenConnectionName1(final String message) {
+                key = ROUTING_KEY_1))
+        void listenBroker1(final String message) {
         }
     }
 }
