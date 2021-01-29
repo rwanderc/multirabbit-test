@@ -23,69 +23,79 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.autoconfigure.amqp.MultiRabbitAutoConfiguration;
+import org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.stereotype.Component;
 
-@SpringBootTest(classes = {
-        ProperDeclarablesIntegrationTest.Application.class,
-        Memory.class})
-@ActiveProfiles("three-brokers")
-public class ProperDeclarablesIntegrationTest {
-
-    @Autowired
-    private BeanFactory beanFactory;
+class ProperDeclarablesIntegrationTest {
 
     @Test
     @DisplayName("should find proper declarable in broker0 and no other")
     void shouldFindProperDeclarableInBroker0AndNoOther() {
-        final RabbitAdmin admin = beanFactory.getBean(DEFAULT_RABBIT_ADMIN_BEAN_NAME, RabbitAdmin.class);
+        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
+                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
+                MultiRabbitAutoConfiguration.class, ProperDeclarablesIntegrationTest.ListenerBeans.class);
+
+        final RabbitAdmin admin = ctx.getBean(DEFAULT_RABBIT_ADMIN_BEAN_NAME, RabbitAdmin.class);
         assertThat(admin.getQueueInfo(QUEUE_0).getName()).isEqualTo(QUEUE_0);
         assertThat(admin.getQueueInfo(QUEUE_1)).isNull();
         assertThat(admin.getQueueInfo(QUEUE_2)).isNull();
+
+        ctx.close(); // Close and stop the listeners
     }
 
     @Test
     @DisplayName("should find proper declarable in broker1 and no other")
     void shouldFindProperDeclarableInBroker1AndNoOther() {
-        final RabbitAdmin admin = beanFactory.getBean(BROKER_NAME_1 + RABBIT_ADMIN_SUFFIX, RabbitAdmin.class);
+        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
+                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
+                MultiRabbitAutoConfiguration.class, ProperDeclarablesIntegrationTest.ListenerBeans.class);
+
+        final RabbitAdmin admin = ctx.getBean(BROKER_NAME_1 + RABBIT_ADMIN_SUFFIX, RabbitAdmin.class);
         assertThat(admin.getQueueInfo(QUEUE_0)).isNull();
         assertThat(admin.getQueueInfo(QUEUE_1).getName()).isEqualTo(QUEUE_1);
         assertThat(admin.getQueueInfo(QUEUE_2)).isNull();
+
+        ctx.close(); // Close and stop the listeners
     }
 
     @Test
     @DisplayName("should find proper declarable in broker2 and no other")
     void shouldFindProperDeclarableInBroker2AndNoOther() {
-        final RabbitAdmin admin = beanFactory.getBean(BROKER_NAME_2 + RABBIT_ADMIN_SUFFIX, RabbitAdmin.class);
+        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
+                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
+                MultiRabbitAutoConfiguration.class, ProperDeclarablesIntegrationTest.ListenerBeans.class);
+
+        final RabbitAdmin admin = ctx.getBean(BROKER_NAME_2 + RABBIT_ADMIN_SUFFIX, RabbitAdmin.class);
         assertThat(admin.getQueueInfo(QUEUE_0)).isNull();
         assertThat(admin.getQueueInfo(QUEUE_1)).isNull();
         assertThat(admin.getQueueInfo(QUEUE_2).getName()).isEqualTo(QUEUE_2);
+
+        ctx.close(); // Close and stop the listeners
     }
 
+    @Component
     @EnableRabbit
-    @SpringBootApplication
-    public static class Application {
+    private static class ListenerBeans {
 
         @RabbitListener(bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_0),
-                value = @Queue(name = QUEUE_0, exclusive = "true", durable = "false", autoDelete = "true"),
+                value = @Queue(name = QUEUE_0),
                 key = ROUTING_KEY_0))
-        void listenBroker0() {
+        void listenBroker0(final String message) {
         }
 
         @RabbitListener(containerFactory = BROKER_NAME_1, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_1),
-                value = @Queue(name = QUEUE_1, exclusive = "true", durable = "false", autoDelete = "true"),
+                value = @Queue(name = QUEUE_1),
                 key = ROUTING_KEY_1))
-        void listenBroken1() {
+        void listenBroken1(final String message) {
         }
 
         @RabbitListener(containerFactory = BROKER_NAME_2, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_2),
-                value = @Queue(name = QUEUE_2, exclusive = "true", durable = "false", autoDelete = "true"),
+                value = @Queue(name = QUEUE_2),
                 key = ROUTING_KEY_2))
         void listenBroken2() {
         }

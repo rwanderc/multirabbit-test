@@ -23,24 +23,14 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.connection.ConnectionFactoryContextWrapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.autoconfigure.amqp.MultiRabbitAutoConfiguration;
+import org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.stereotype.Component;
 
-@SpringBootTest(classes = {
-        EnabledMultiRabbitIntegrationTest.Application.class,
-        Memory.class})
-@ActiveProfiles("three-brokers")
-public class EnabledMultiRabbitIntegrationTest {
+class EnabledMultiRabbitIntegrationTest {
 
     private static final Memory MEMORY = new Memory();
-
-    @Autowired
-    private ConnectionFactoryContextWrapper contextWrapper;
-
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
 
     @BeforeEach
     void beforeEach() {
@@ -50,39 +40,66 @@ public class EnabledMultiRabbitIntegrationTest {
     @Test
     @DisplayName("should send to and listen from the default broker")
     void shouldListenToDefault() {
+        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
+                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
+                MultiRabbitAutoConfiguration.class, ListenerBeans.class);
+
+        final ConnectionFactoryContextWrapper contextWrapper = ctx.getBean(ConnectionFactoryContextWrapper.class);
+        final RabbitTemplate rabbitTemplate = ctx.getBean(RabbitTemplate.class);
+
         final String message = RandomString.make();
         contextWrapper.run(() -> rabbitTemplate.convertAndSend(EXCHANGE_0, ROUTING_KEY_0, message));
         await().timeout(Duration.FIVE_SECONDS)
                 .untilAsserted(() -> assertEquals(message, MEMORY.get("default")));
+
+        ctx.close(); // Close and stop the listeners
     }
 
     @Test
     @DisplayName("should send to and listen from the broker connectionName1")
     void shouldListenToConnection1() {
+        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
+                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
+                MultiRabbitAutoConfiguration.class, ListenerBeans.class);
+
+        final ConnectionFactoryContextWrapper contextWrapper = ctx.getBean(ConnectionFactoryContextWrapper.class);
+        final RabbitTemplate rabbitTemplate = ctx.getBean(RabbitTemplate.class);
+
         final String message = RandomString.make();
         contextWrapper.run("connectionName1",
                 () -> rabbitTemplate.convertAndSend(EXCHANGE_1, ROUTING_KEY_1, message));
         await().timeout(Duration.FIVE_SECONDS)
                 .untilAsserted(() -> assertEquals(message, MEMORY.get(BROKER_NAME_1)));
+
+        ctx.close(); // Close and stop the listeners
     }
 
     @Test
     @DisplayName("should send to and listen from the broker connectionName2")
     void shouldListenToConnection2() {
+        final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
+                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
+                MultiRabbitAutoConfiguration.class, ListenerBeans.class);
+
+        final ConnectionFactoryContextWrapper contextWrapper = ctx.getBean(ConnectionFactoryContextWrapper.class);
+        final RabbitTemplate rabbitTemplate = ctx.getBean(RabbitTemplate.class);
+
         final String message = RandomString.make();
         contextWrapper.run("connectionName2",
                 () -> rabbitTemplate.convertAndSend(EXCHANGE_2, ROUTING_KEY_2, message));
         await().timeout(Duration.FIVE_SECONDS)
                 .untilAsserted(() -> assertEquals(message, MEMORY.get(BROKER_NAME_2)));
+
+        ctx.close(); // Close and stop the listeners
     }
 
+    @Component
     @EnableRabbit
-    @SpringBootApplication
-    public static class Application {
+    private static class ListenerBeans {
 
         @RabbitListener(bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_0),
-                value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
+                value = @Queue(),
                 key = ROUTING_KEY_0))
         void listenBroker0(final String message) {
             MEMORY.put("default", message);
@@ -90,7 +107,7 @@ public class EnabledMultiRabbitIntegrationTest {
 
         @RabbitListener(containerFactory = BROKER_NAME_1, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_1),
-                value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
+                value = @Queue(),
                 key = ROUTING_KEY_1))
         void listenBroker1(final String message) {
             MEMORY.put(BROKER_NAME_1, message);
@@ -98,7 +115,7 @@ public class EnabledMultiRabbitIntegrationTest {
 
         @RabbitListener(containerFactory = BROKER_NAME_2, bindings = @QueueBinding(
                 exchange = @Exchange(EXCHANGE_2),
-                value = @Queue(exclusive = "true", durable = "false", autoDelete = "true"),
+                value = @Queue(),
                 key = ROUTING_KEY_2))
         void listenBroker2(final String message) {
             MEMORY.put(BROKER_NAME_2, message);
