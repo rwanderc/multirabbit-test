@@ -12,9 +12,10 @@ import static com.wandercosta.multirabbit.TestConstants.ROUTING_KEY_0;
 import static com.wandercosta.multirabbit.TestConstants.ROUTING_KEY_1;
 import static com.wandercosta.multirabbit.TestConstants.ROUTING_KEY_2;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.amqp.rabbit.annotation.MultiRabbitListenerAnnotationBeanPostProcessor.RABBIT_ADMIN_SUFFIX;
-import static org.springframework.amqp.rabbit.annotation.RabbitListenerAnnotationBeanPostProcessor.DEFAULT_RABBIT_ADMIN_BEAN_NAME;
+import static org.springframework.amqp.rabbit.config.RabbitListenerConfigUtils.MULTI_RABBIT_ADMIN_SUFFIX;
+import static org.springframework.amqp.rabbit.config.RabbitListenerConfigUtils.RABBIT_ADMIN_BEAN_NAME;
 
+import com.wandercosta.multirabbit.TestConfigs.ThreeBrokersConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
@@ -34,10 +35,10 @@ class ProperDeclarablesIntegrationTest {
     @DisplayName("should find proper declarable in broker0 and no other")
     void shouldFindProperDeclarableInBroker0AndNoOther() {
         final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
-                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
-                MultiRabbitAutoConfiguration.class, ProperDeclarablesIntegrationTest.ListenerBeans.class);
+                ThreeBrokersConfig.class, RabbitAutoConfiguration.class, MultiRabbitAutoConfiguration.class,
+                ListenerBeans.class);
 
-        final RabbitAdmin admin = ctx.getBean(DEFAULT_RABBIT_ADMIN_BEAN_NAME, RabbitAdmin.class);
+        final RabbitAdmin admin = ctx.getBean(RABBIT_ADMIN_BEAN_NAME, RabbitAdmin.class);
         assertThat(admin.getQueueInfo(QUEUE_0).getName()).isEqualTo(QUEUE_0);
         assertThat(admin.getQueueInfo(QUEUE_1)).isNull();
         assertThat(admin.getQueueInfo(QUEUE_2)).isNull();
@@ -49,10 +50,10 @@ class ProperDeclarablesIntegrationTest {
     @DisplayName("should find proper declarable in broker1 and no other")
     void shouldFindProperDeclarableInBroker1AndNoOther() {
         final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
-                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
-                MultiRabbitAutoConfiguration.class, ProperDeclarablesIntegrationTest.ListenerBeans.class);
+                ThreeBrokersConfig.class, RabbitAutoConfiguration.class, MultiRabbitAutoConfiguration.class,
+                ListenerBeans.class);
 
-        final RabbitAdmin admin = ctx.getBean(BROKER_NAME_1 + RABBIT_ADMIN_SUFFIX, RabbitAdmin.class);
+        final RabbitAdmin admin = ctx.getBean(BROKER_NAME_1 + MULTI_RABBIT_ADMIN_SUFFIX, RabbitAdmin.class);
         assertThat(admin.getQueueInfo(QUEUE_0)).isNull();
         assertThat(admin.getQueueInfo(QUEUE_1).getName()).isEqualTo(QUEUE_1);
         assertThat(admin.getQueueInfo(QUEUE_2)).isNull();
@@ -64,10 +65,10 @@ class ProperDeclarablesIntegrationTest {
     @DisplayName("should find proper declarable in broker2 and no other")
     void shouldFindProperDeclarableInBroker2AndNoOther() {
         final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
-                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
-                MultiRabbitAutoConfiguration.class, ProperDeclarablesIntegrationTest.ListenerBeans.class);
+                ThreeBrokersConfig.class, RabbitAutoConfiguration.class, MultiRabbitAutoConfiguration.class,
+                ListenerBeans.class);
 
-        final RabbitAdmin admin = ctx.getBean(BROKER_NAME_2 + RABBIT_ADMIN_SUFFIX, RabbitAdmin.class);
+        final RabbitAdmin admin = ctx.getBean(BROKER_NAME_2 + MULTI_RABBIT_ADMIN_SUFFIX, RabbitAdmin.class);
         assertThat(admin.getQueueInfo(QUEUE_0)).isNull();
         assertThat(admin.getQueueInfo(QUEUE_1)).isNull();
         assertThat(admin.getQueueInfo(QUEUE_2).getName()).isEqualTo(QUEUE_2);

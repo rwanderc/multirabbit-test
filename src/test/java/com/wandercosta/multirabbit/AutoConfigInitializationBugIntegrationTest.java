@@ -9,6 +9,7 @@ import static com.wandercosta.multirabbit.TestConstants.ROUTING_KEY_0;
 import static com.wandercosta.multirabbit.TestConstants.ROUTING_KEY_1;
 import static com.wandercosta.multirabbit.TestConstants.ROUTING_KEY_2;
 
+import com.wandercosta.multirabbit.TestConfigs.ThreeBrokersConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
@@ -36,8 +37,8 @@ class AutoConfigInitializationBugIntegrationTest {
     @DisplayName("Should start MultiRabbit AutoConfig without reference to ConnectionFactory")
     void shouldStartContextWithoutRabbitTemplate() {
         final AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
-                TestConfigs.ThreeBrokersTestConfig.class, RabbitAutoConfiguration.class,
-                MultiRabbitAutoConfiguration.class, AutoConfigInitializationBugIntegrationTest.ListenerBeans.class);
+                ThreeBrokersConfig.class, RabbitAutoConfiguration.class, MultiRabbitAutoConfiguration.class,
+                AutoConfigInitializationBugIntegrationTest.ListenerBeans.class);
         ctx.close(); // Close and stop the listeners
     }
 
